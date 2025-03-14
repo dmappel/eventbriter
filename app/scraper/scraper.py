@@ -285,9 +285,9 @@ class EventbriteScraper:
         # Add date range if provided
         if search_params.date_range:
             if search_params.date_range.start:
-                query_params["start_date"] = search_params.date_range.start.strftime("%Y-%m-%d")
+                query_params["start_date"] = search_params.date_range.start
             if search_params.date_range.end:
-                query_params["end_date"] = search_params.date_range.end.strftime("%Y-%m-%d")
+                query_params["end_date"] = search_params.date_range.end
         
         # Add page number
         if search_params.page > 1:
@@ -303,7 +303,7 @@ class EventbriteScraper:
         logger.debug(f"Built search URL: {url}")
         return url
     
-    def search_events(
+    def search_events_by_location(
         self, 
         location: str, 
         date: Optional[str] = None, 
@@ -311,7 +311,7 @@ class EventbriteScraper:
         page: int = 1
     ) -> List[Event]:
         """
-        Search for events on Eventbrite.
+        Search for events on Eventbrite by location.
         
         Args:
             location: Location to search in

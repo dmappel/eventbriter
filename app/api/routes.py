@@ -1,14 +1,10 @@
 import time
-import json
-import io
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Query, Path, HTTPException, Depends, Response
-from fastapi.responses import StreamingResponse
-import pandas as pd
+from typing import Dict, Any, Optional, List
+from fastapi import APIRouter, Query, Path, HTTPException, Depends
 
 from app.config import logger
 from app.models.event import Event, SimpleEvent
-from app.models.search import SearchRequest, SearchResponse, ExportFormat, ExportRequest, ErrorResponse
+from app.models.search import SearchRequest, DateRange
 from app.scraper.scraper import EventbriteScraper
 
 # Create router
@@ -30,7 +26,7 @@ def get_scraper() -> EventbriteScraper:
     return scraper
 
 
-@router.get("/events/search", response_model=List[SimpleEvent])
+@router.get("/events/search", response_model=Dict[str, Any])
 async def search_events(
     locations: Optional[List[str]] = Query(None, description="List of locations to search in"),
     keywords: Optional[List[str]] = Query(None, description="List of keywords to search for"),
@@ -42,17 +38,19 @@ async def search_events(
     scraper: EventbriteScraper = Depends(get_scraper)
 ) -> Dict[str, Any]:
     """
-    Search for events with filters.
+    Search for events with filters and return structured data with only id, title, and url.
     """
     try:
+        # Create date range if dates are provided
+        date_range = None
+        if start_date or end_date:
+            date_range = DateRange(start=start_date, end=end_date)
+        
         # Create search request from query parameters
         search_request = SearchRequest(
             locations=locations,
             keywords=keywords,
-            date_range={
-                "start": start_date,
-                "end": end_date
-            } if start_date or end_date else None,
+            date_range=date_range,
             page=page,
             page_size=page_size,
             limit=limit
@@ -61,10 +59,23 @@ async def search_events(
         # Search for events
         result = scraper.search_events(search_request)
         
-        # Convert to SimpleEvent objects
-        simple_events = [SimpleEvent(id=event.id, title=event.title, url=event.url) for event in result["events"]]
+        # Simplify the response to include only id, title, and url
+        simplified_events = []
+        for event in result["events"]:
+            simplified_events.append({
+                "id": event.id,
+                "title": event.title,
+                "url": event.url
+            })
         
-        return simple_events
+        # Return simplified response
+        return {
+            "events": simplified_events,
+            "total_count": result["total_count"],
+            "page": result["page"],
+            "page_size": result["page_size"],
+            "search_time_ms": result["search_time_ms"]
+        }
     
     except Exception as e:
         logger.error(f"Error in search_events: {e}")
@@ -80,7 +91,7 @@ async def get_event(
     scraper: EventbriteScraper = Depends(get_scraper)
 ) -> SimpleEvent:
     """
-    Get detailed information about a specific event.
+    Get simplified information about a specific event (id, title, url only).
     """
     try:
         event = scraper.get_event_details(event_id)
@@ -91,10 +102,12 @@ async def get_event(
                 detail=f"Event with ID {event_id} not found"
             )
         
-        # Convert to SimpleEvent
-        simple_event = SimpleEvent(id=event.id, title=event.title, url=event.url)
-        
-        return simple_event
+        # Return only the simplified event data
+        return SimpleEvent(
+            id=event.id,
+            title=event.title,
+            url=event.url
+        )
     
     except HTTPException:
         raise
@@ -104,66 +117,4 @@ async def get_event(
         raise HTTPException(
             status_code=500,
             detail=f"An error occurred while retrieving event details: {str(e)}"
-        )
-
-
-@router.post("/events/export")
-async def export_events(
-    export_request: ExportRequest,
-    scraper: EventbriteScraper = Depends(get_scraper)
-) -> Response:
-    """
-    Export event data in various formats.
-    """
-    try:
-        # Search for events
-        result = scraper.search_events(export_request.search_params)
-        events = result["events"]
-        
-        # Convert to SimpleEvent objects
-        simple_events = [SimpleEvent(id=event.id, title=event.title, url=event.url) for event in events]
-        
-        if export_request.format == ExportFormat.JSON:
-            # Convert events to JSON
-            events_json = json.dumps([event.dict() for event in simple_events], default=str, indent=2)
-            
-            # Create response with JSON file
-            return StreamingResponse(
-                io.StringIO(events_json),
-                media_type="application/json",
-                headers={
-                    "Content-Disposition": f"attachment; filename=events.json"
-                }
-            )
-        
-        elif export_request.format == ExportFormat.CSV:
-            # Convert events to DataFrame
-            events_data = [event.dict() for event in simple_events]
-            
-            # Create DataFrame
-            df = pd.DataFrame(events_data)
-            
-            # Convert to CSV
-            csv_data = df.to_csv(index=False)
-            
-            # Create response with CSV file
-            return StreamingResponse(
-                io.StringIO(csv_data),
-                media_type="text/csv",
-                headers={
-                    "Content-Disposition": f"attachment; filename=events.csv"
-                }
-            )
-        
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported export format: {export_request.format}"
-            )
-    
-    except Exception as e:
-        logger.error(f"Error in export_events: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"An error occurred while exporting events: {str(e)}"
         )

@@ -33,8 +33,8 @@ EVENTBRITE_EVENT_URL = f"{EVENTBRITE_BASE_URL}/e"
 # Configure logging
 def setup_logging():
     """Configure logging for the application."""
-    # Always use DEBUG level for development
-    log_level = logging.DEBUG
+    # Set log level
+    log_level = logging.DEBUG if DEBUG else logging.INFO
     
     # Create logger
     logger = logging.getLogger("eventbrite_scraper")
@@ -57,12 +57,6 @@ def setup_logging():
     
     # Add handler to logger
     logger.addHandler(console_handler)
-    
-    # Create file handler for debug logs
-    file_handler = logging.FileHandler("eventbrite_scraper.log")
-    file_handler.setLevel(log_level)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
     
     return logger
 

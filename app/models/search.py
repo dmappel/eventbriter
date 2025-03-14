@@ -1,16 +1,15 @@
 """Search models for the Eventbrite scraper."""
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
-from enum import Enum
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, validator
 
 from app.models.event import Event
 
 
 class DateRange(BaseModel):
     """Model for date range filter."""
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class PriceRange(BaseModel):
@@ -18,12 +17,6 @@ class PriceRange(BaseModel):
     min: Optional[float] = None
     max: Optional[float] = None
     free_only: bool = False
-
-
-class ExportFormat(str, Enum):
-    """Enum for export format options."""
-    JSON = "json"
-    CSV = "csv"
 
 
 class SearchRequest(BaseModel):
@@ -62,17 +55,4 @@ class SearchResponse(BaseModel):
     total_count: int
     page: int
     page_size: int
-    search_time_ms: int
-
-
-class ExportRequest(BaseModel):
-    """Model for export request parameters."""
-    search_params: SearchRequest
-    format: ExportFormat = ExportFormat.JSON
-
-
-class ErrorResponse(BaseModel):
-    """Model for error responses."""
-    detail: str
-    status_code: int
-    timestamp: datetime = Field(default_factory=datetime.now) 
+    search_time_ms: int 

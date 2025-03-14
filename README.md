@@ -1,17 +1,15 @@
 # Eventbrite Scraper
 
-A Python-based scraper for extracting event information from Eventbrite with a FastAPI backend. This tool allows you to search for events, retrieve detailed event information, and export data in various formats.
+A Python-based scraper for extracting event information from Eventbrite with a FastAPI backend. This tool allows you to search for events and retrieve basic event information with a clean, focused API.
 
 ## Features
 
 - **Event Search**: Search for events based on location, date range, and keywords
-- **Event Details**: Get comprehensive information about specific events
-- **Data Export**: Export event data in JSON and CSV formats
+- **Event Details**: Get basic information about specific events (id, title, url)
 - **RESTful API**: Modern API built with FastAPI
-- **Rate Limiting**: Basic rate limiting to prevent abuse
-- **Logging**: Comprehensive request and error logging
-- **Docker Support**: Easy deployment with Docker
 - **CORS Support**: Cross-Origin Resource Sharing enabled for frontend integration
+- **Simplified Responses**: Clean, focused responses with only essential data
+- **Docker Support**: Easy deployment with Docker
 
 ## Project Structure
 
@@ -54,7 +52,6 @@ eventbrite-scraper/
   - pytest
   - python-dotenv
   - webdriver-manager
-  - pandas
 
 ## Installation
 
@@ -121,6 +118,28 @@ Query Parameters:
 - `page_size`: Number of results per page (default: 20, max: 100)
 - `limit`: Maximum number of results to return
 
+Response Format:
+```json
+{
+  "events": [
+    {
+      "id": "event_id_1",
+      "title": "Event Title 1",
+      "url": "https://www.eventbrite.com/e/event-title-1-tickets-event_id_1"
+    },
+    {
+      "id": "event_id_2",
+      "title": "Event Title 2",
+      "url": "https://www.eventbrite.com/e/event-title-2-tickets-event_id_2"
+    }
+  ],
+  "total_count": 2,
+  "page": 1,
+  "page_size": 20,
+  "search_time_ms": 1234
+}
+```
+
 #### Get Event Details
 ```
 GET /events/{event_id}
@@ -129,16 +148,12 @@ GET /events/{event_id}
 Path Parameters:
 - `event_id`: The ID of the event to retrieve
 
-#### Export Events
-```
-POST /events/export
-```
-
-Request Body:
+Response Format:
 ```json
 {
-  "events": ["event_id_1", "event_id_2"],
-  "format": "json"  // or "csv"
+  "id": "event_id",
+  "title": "Event Title",
+  "url": "https://www.eventbrite.com/e/event-title-tickets-event_id"
 }
 ```
 
@@ -180,15 +195,11 @@ For production use, consider using Docker Compose with appropriate environment v
 pytest
 ```
 
-### Logging
-
-Logs are written to `eventbrite_scraper.log` by default. The log level can be controlled via the DEBUG environment variable.
-
 ## Limitations
 
 - The scraper respects Eventbrite's robots.txt and implements rate limiting to avoid being blocked
-- Some event details may not be available depending on how the event organizer has configured their listing
 - The scraper may break if Eventbrite significantly changes their website structure
+- Only basic event information (id, title, url) is returned to keep responses clean and focused
 
 ## License
 
