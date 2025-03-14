@@ -1,0 +1,1 @@
+"""Eventbrite scraper application package."""
